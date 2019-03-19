@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -15,16 +16,20 @@ class _MapScreenState extends State<MapScreen> {
   var sitios = [];
   var sitioActual;
   var currentBearing;
+  var map = <String, String>{};
+  double _ber;
   GoogleMapController mapController;
   void initState() {
     setState(() {
       mapToogle = true;
       poblarSitios();
+      _ber = 0;
     });
   }
 
   poblarSitios() {
     sitios = [];
+    // Conexion a Firestore
     Firestore.instance.collection('markers').getDocuments().then((docs) {
       if (docs.documents.isNotEmpty) {
         setState(() {
@@ -32,150 +37,108 @@ class _MapScreenState extends State<MapScreen> {
         });
         for (var i = 0; i < docs.documents.length; i++) {
           sitios.add(docs.documents[i].data);
-          iniMarkers(docs.documents[i].data);
+          initMarker(docs.documents[i].data);
         }
       }
     });
   }
 
-  iniMarkers(sitio) {
+  initMarker(sitio) {
     mapController.clearMarkers().then((value) {
-      mapController.addMarker(MarkerOptions(
-          position:
-              LatLng(sitio['location'].latitude, sitio['location'].longitude),
-          draggable: false,
-          infoWindowText: InfoWindowText(sitio['name'], 'Universidad')));
+      mapController
+          .addMarker(MarkerOptions(
+              position: LatLng(
+                  sitio['position'].latitude, sitio['position'].longitude),
+              draggable: false,
+              infoWindowText: InfoWindowText(sitio['name'], 'Universidad')))
+          .then((marker) {
+        map[marker.id] = sitio['name']; // this will return when tap on marker
+        return marker;
+      });
     });
   }
 
-  Widget siteCard(sitio) {
-    return Padding(
-      padding: EdgeInsets.all(2.0),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            sitioActual = sitio;
-            currentBearing = 90.0;
-          });
-          zoomInMarker(sitio);
-        },
-        child: Material(
-          elevation: 4.0,
-          borderRadius: BorderRadius.circular(5.0),
-          child: Container(
-            height: 100,
-            width: 152,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5.0),
-              color: Colors.white,
+  void _onMarkerTapped(Marker marker) {
+    double lat = double.parse(marker.options.position.latitude.toString());
+    double long = double.parse(marker.options.position.longitude.toString());
+    Random rnd = new Random();
+    double max = 90;
+
+    double _bearing = max * rnd.nextDouble();
+    setState(() {
+      _ber = _bearing;
+    });
+    
+    mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+      bearing: _ber,
+      target: LatLng(lat, long),
+      zoom: 15,
+      tilt: 50,
+    )));
+    showModalBottomSheet(
+        context: context,
+        builder: (builder) {
+          return Container(
+            height: 300,
+            width: double.infinity,
+            color: Colors.blueGrey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Center(
+                    child: Text(
+                  marker.options.infoWindowText.title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )),
+              ],
             ),
-            child: Center(
-              child: Text(sitio['name']),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  zoomInMarker(sitio) {
-    mapController
-        .animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-            target: LatLng(sitioActual['location'].latitude,
-                sitioActual['location'].longitude),
-            zoom: 5.0)))
-        .then((val) {
-      setState(() {
-        resetToggle = false;
-      });
-    });
-  }
-
-  girarDerecha() {
-    mapController
-        .animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-            target: LatLng(sitioActual['location'].latitude,
-                sitioActual['location'].longitude),
-            bearing: currentBearing == 360.0
-                ? currentBearing
-                : currentBearing + 90.0,
-            zoom: 17.0,
-            tilt: 45.0)))
-        .then((val) {
-      setState(() {
-        if (currentBearing == 360.0) {
-        } else {
-          currentBearing = currentBearing + 90.0;
-        }
-      });
-    });
-  }
-
-// Codigo de animacion
-  giroIzquierda() {
-    mapController
-        .animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-            target: LatLng(sitioActual['location'].latitude,
-                sitioActual['location'].longitude),
-            bearing:
-                currentBearing == 0.0 ? currentBearing : currentBearing - 90.0,
-            zoom: 17.0,
-            tilt: 45.0)))
-        .then((val) {
-      setState(() {
-        if (currentBearing == 0.0) {
-        } else {
-          currentBearing = currentBearing - 90.0;
-        }
-      });
-    });
-  }
-
-  markerInicial() {
-    mapController
-        .animateCamera(CameraUpdate.newCameraPosition(
-            CameraPosition(target: LatLng(51.0533076, 5.9260656), zoom: 5.0)))
-        .then((val) {
-      //Alemania, Berlin
-      setState(() {
-        resetToggle = false;
-      });
-    });
+          );
+        });
   }
 
   void onMapCreated(controller) {
     setState(() {
       mapController = controller;
     });
+    mapController.onMarkerTapped.add(_onMarkerTapped);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: double.infinity,
-            child: mapToogle
-                ? GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(48.8583998, 2.29322),
-                      zoom: 15,
-                    ),
-                    onMapCreated: onMapCreated,
-                    myLocationEnabled: true,
-                    mapType: MapType.terrain,
-                    compassEnabled: true,
-                    trackCameraPosition: true,
-                  )
-                : Center(
-                    child: Text('Revise su dispositivo'),
-                  ),
-          ),
-          
-        ],
-      ),
-    );
+        body: Column(
+      children: <Widget>[
+        Stack(
+          children: <Widget>[
+            Container(
+                height: MediaQuery.of(context).size.height,
+                width: double.infinity,
+                child: mapToogle
+                    ? GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                            target: LatLng(-0.2069681, -78.4912876), //Quito
+                            zoom: 13),
+                        onMapCreated: onMapCreated,
+                        myLocationEnabled: true, 
+                        mapType: MapType.normal,
+                        compassEnabled: true,
+                        zoomGesturesEnabled: true,
+                        trackCameraPosition: true,
+                      )
+                    : Center(
+                        child: Text(
+                        'Revisa datos, gps, wifi..',
+                        style: TextStyle(fontSize: 20.0),
+                      ))),
+          ],
+        )
+      ],
+    ));
   }
 }

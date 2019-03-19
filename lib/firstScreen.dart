@@ -25,6 +25,11 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: Padding(
                     padding: EdgeInsets.only(top: 60),
+                  //   child: Container(
+                  //     height: 250,
+                  //     width: 250,
+                  //     color: Colors.blueGrey,
+                  //   ),
                     child: Image(
                       image: NetworkImage(
                           'https://initgrammers.com/wp-content/uploads/2019/02/Logo-IG.png'),
