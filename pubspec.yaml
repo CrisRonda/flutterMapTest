@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  redux:
+  flutter_redux:
 
   firebase_core: ^0.3.0+2
   cloud_firestore: ^0.9.0+2

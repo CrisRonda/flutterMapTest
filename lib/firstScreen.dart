@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'mapScreen.dart';
+import 'reduxApp.dart';
+import 'package:flutter_redux/flutter_redux.dart';
+
+
 class LoginPage extends StatefulWidget {
   LoginPage({Key key, this.title}) : super(key: key);
   final String title;
@@ -25,11 +29,11 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: Padding(
                     padding: EdgeInsets.only(top: 60),
-                  //   child: Container(
-                  //     height: 250,
-                  //     width: 250,
-                  //     color: Colors.blueGrey,
-                  //   ),
+                    //   child: Container(
+                    //     height: 250,
+                    //     width: 250,
+                    //     color: Colors.blueGrey,
+                    //   ),
                     child: Image(
                       image: NetworkImage(
                           'https://initgrammers.com/wp-content/uploads/2019/02/Logo-IG.png'),
@@ -82,12 +86,41 @@ class _LoginPageState extends State<LoginPage> {
                   padding: EdgeInsets.only(top: 10),
                   child: Align(
                     alignment: Alignment(0.5, 0),
-                    child: Text(
-                      "Forgot your password?",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500),
+                    child: new StoreConnector<int, String>(
+                      converter: (store) => store.state.toString(),
+                      builder: (context, count) {
+                        return new Text(
+                          "En el store: " + count,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: 15),
+                  child: Container(
+                    width: 230,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.rectangle,
+                      color: Colors.black,
+                    ),
+                    child: StoreConnector<int, VoidCallback>(
+                      converter: (store) {
+                        return () => store.dispatch(Actions.Increment);
+                      },
+                      builder: (context, callback) {
+                        return MaterialButton(
+                          onPressed: callback,
+                          child: Text(
+                            "Aumentar",
+                            style: TextStyle(color: colorText),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -107,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       },
                       child: Text(
-                        "Log in",
+                        "Siguiente",
                         style: TextStyle(color: colorText),
                       ),
                     ),

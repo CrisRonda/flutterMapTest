@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'reduxApp.dart';
+import 'package:flutter_redux/flutter_redux.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -68,7 +70,7 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _ber = _bearing;
     });
-    
+
     mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       bearing: _ber,
       target: LatLng(lat, long),
@@ -116,26 +118,52 @@ class _MapScreenState extends State<MapScreen> {
       children: <Widget>[
         Stack(
           children: <Widget>[
-            Container(
-                height: MediaQuery.of(context).size.height,
-                width: double.infinity,
-                child: mapToogle
-                    ? GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                            target: LatLng(-0.2069681, -78.4912876), //Quito
-                            zoom: 13),
-                        onMapCreated: onMapCreated,
-                        myLocationEnabled: true, 
-                        mapType: MapType.normal,
-                        compassEnabled: true,
-                        zoomGesturesEnabled: true,
-                        trackCameraPosition: true,
-                      )
-                    : Center(
-                        child: Text(
-                        'Revisa datos, gps, wifi..',
-                        style: TextStyle(fontSize: 20.0),
-                      ))),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Container(
+                    height: MediaQuery.of(context).size.height - 64,
+                    width: double.infinity,
+                    child: mapToogle
+                        ? GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                                target: LatLng(-0.2069681, -78.4912876), //Quito
+                                zoom: 13),
+                            onMapCreated: onMapCreated,
+                            myLocationEnabled: true,
+                            mapType: MapType.normal,
+                            compassEnabled: true,
+                            zoomGesturesEnabled: true,
+                            trackCameraPosition: true,
+                          )
+                        : Center(
+                            child: Text(
+                            'Revisa datos, gps, wifi..',
+                            style: TextStyle(fontSize: 20.0),
+                          ))),
+
+/* *********************************************** REDUX */
+                Container(
+                    child: StoreConnector<int, VoidCallback>(
+                  converter: (store) {
+                    return () => store.dispatch(Actions.Increment);
+                  },
+                  builder: (context, callback) {
+                    return MaterialButton(
+                      onPressed: callback,
+                      child: Text("Seguir aumentando"),
+                      color: Colors.blueAccent,
+                    );
+                  },
+                )),
+                StoreConnector<int, String>(
+                  converter: (store) => store.state.toString(),
+                  builder: (context, msj) {
+                    return Text("Valor en el store: " + msj);
+                  },
+                )
+              ],
+            ),
           ],
         )
       ],
